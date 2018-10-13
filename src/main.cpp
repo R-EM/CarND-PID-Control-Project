@@ -36,7 +36,7 @@ int main()
   // TODO: Initialize the pid variable.
   double init_Kp = 1;
   double init_Ki = 0;
-  double init_Kd = 1;
+  double init_Kd = 4;
   pid.Init(init_Kp, init_Ki, init_Kd);
   
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -66,13 +66,30 @@ int main()
 
           if(fabs(steer_value) > 1)
             steer_value /= fabs(steer_value);
+
+          double throttle_value = 0.3;
+
+          // if the error is increasing, reduce throttle
+
+          // Compare previous cte value with current one.
+          double cte_change = fabs(pid.p_error-cte);
+          
+          // If the cte_change is > 0, then cte is getting worse. Slow down
+          // Using a limit of 0.1 since using 0 might cause too many changes
+          if(cte_change > 0.1 && throttle_value > 0.1);
+            throttle_value -= 0.1;
+
+          // If cte_change is low, then we can probably speed up. 
+          // Maximum throttle should be 0-3
+          if(cte_change < 0.1 && throttle_value < 0.3);
+            throttle_value += 0.1;          
           
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
+          msgJson["throttle"] = throttle_value;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
